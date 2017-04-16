@@ -24,4 +24,9 @@ server {
 	       fastcgi_index index.php;
                include /etc/nginx/fastcgi_params;
          }
+### Permitindo permalinks do wordpress, caso o wordpress responsa na raiz alterar /blog para / ##	
+	location /blog {
+        # include the "?$args" part so non-default permalinks doesn't break when using query string
+        try_files $uri $uri/blog /blog/index.php?$args;
+  }
 }
