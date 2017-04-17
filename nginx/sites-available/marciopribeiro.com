@@ -11,8 +11,9 @@
 
 
 ### Cache paths and keys
-fastcgi_cache_path /tmp/nginx levels=1:2 keys_zone=my_zone:10m inactive=60m;
+fastcgi_cache_path /tmp/nginx levels=1:2 keys_zone=my_cache:10m inactive=60m;
 fastcgi_cache_key "$scheme$request_method$host$request_uri";
+
 
 ### Optimizing the upstream using multiple sockets	
 	upstream fastcgi_backend {
@@ -48,11 +49,10 @@ server {
                include /etc/nginx/security;
 	       include /etc/nginx/expires.conf;
 ### Custom Headers
-		add_header Cache-Control private;
-                add_header ConfigTest $upstream_cache_status always;
-		add_header X-Frame-Options SAMEORIGIN;
-		add_header X-Content-Type-Options nosniff;
-		add_header X-XSS-Protection "1; mode=block";
+		fastcgi_pass_header Set-Cookie;
+	        fastcgi_pass_header Cookie;
+    		fastcgi_ignore_headers Cache-Control Expires Set-Cookie;
+		add_header X-Cache $upstream_cache_status;
 
 
 
@@ -91,18 +91,21 @@ server {
  error_log  /var/log/nginx/marciopribeiro.com.error.log notice;
 
 ### serve static files directly
-         location ~* ^.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt)$ {
-               access_log        off;
-               expires           max;
-         }
+##         location ~* ^.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt)$ {
+#               access_log        off;
+#               expires           max;
+#	
+#         }
 
 ### PHP-FPM configs
 
          	location ~ \.php$ {
 #		try_files $uri =404;
 ### Fastcgi ( PHP-FPM ) cache config
-#	       fastcgi_cache fideloper;
-               fastcgi_cache_valid 200 60m; # Only cache 200 responses, cache for 60 minutes
+               fastcgi_cache my_cache;
+	       fastcgi_cache_valid 200 302 10m; # Only cache 200 and 302 responses, cache for 10 minutes
+               fastcgi_cache_valid 301 60m; # Only cache 301 responses, cache for 60 minutes
+               fastcgi_cache_valid any 60m; # Only cache any responses, cache for 60 minutes
                fastcgi_cache_methods GET HEAD; # Only GET and HEAD methods apply
                fastcgi_no_cache $no_cache; # Don't save to cache based on $no_cache
                fastcgi_cache_bypass $no_cache;  # Don't pull from cache based on $no_cache
